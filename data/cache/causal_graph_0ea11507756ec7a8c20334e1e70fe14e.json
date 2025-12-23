@@ -1,0 +1,33 @@
+{
+  "edges": [
+    [
+      "age",
+      "referral"
+    ],
+    [
+      "age",
+      "chronic_conditions"
+    ],
+    [
+      "race",
+      "referral"
+    ],
+    [
+      "race",
+      "insurance_type"
+    ],
+    [
+      "creatinine_level",
+      "referral"
+    ],
+    [
+      "chronic_conditions",
+      "referral"
+    ],
+    [
+      "insurance_type",
+      "referral"
+    ]
+  ],
+  "explanation": "Causal graph analysis (template-based):\n\nIdentified 7 causal relationships in the clinical data.\n\nKey pathways from race to referral:\n- age \u2192 referral\n- age \u2192 chronic_conditions\n- race \u2192 referral\n- race \u2192 insurance_type\n- creatinine_level \u2192 referral\n\nThis graph represents potential bias propagation routes that should be examined for fairness violations."
+}
