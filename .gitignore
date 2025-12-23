@@ -1,0 +1,7 @@
+﻿config/api_keys.yaml
+llm_logs/
+results/*.json
+results/*.csv
+__pycache__/
+*.pyc
+.env
