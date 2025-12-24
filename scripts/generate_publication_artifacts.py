@@ -44,45 +44,50 @@ print(f"[OK] Table 1 saved: {table1_path}")
 print("\nTABLE 1 PREVIEW:")
 print(table1.to_string(index=False))
 
-# FIGURE 1: Pareto Frontier
-plt.figure(figsize=(10, 6))
+# FIGURE 1: Pareto Frontier (FIXED)
+plt.figure(figsize=(12, 7))
 
-# Plot each method
-for idx, row in df.iterrows():
+# Plot each method with unique colors
+colors = ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728']
+markers = ['o', 's', '^', 'D']
+
+for idx, (i, row) in enumerate(df.iterrows()):
     plt.scatter(
         row["FNR Disparity (mean)"],
         row["Accuracy (mean)"],
-        s=200,
-        label=row["Method"],
+        s=300,
+        color=colors[idx],
+        marker=markers[idx],
         alpha=0.8,
         edgecolors='black',
-        linewidth=1.5
-    )
-
-    # Add method labels
-    plt.annotate(
-        row["Method"].replace(" ", "\n"),
-        (row["FNR Disparity (mean)"], row["Accuracy (mean)"]),
-        textcoords="offset points",
-        xytext=(0, 10),
-        ha='center',
-        fontsize=8
+        linewidth=2,
+        label=row["Method"],
+        zorder=3
     )
 
 # Add clinical safety threshold
-plt.axvline(x=0.05, color="green", linestyle="--", linewidth=2, label="Clinical Safety Threshold (FNR <= 5%)", alpha=0.7)
+plt.axvline(x=0.05, color="green", linestyle="--", linewidth=2.5,
+            label="Clinical Safety Threshold (FNR <= 5%)", alpha=0.7, zorder=1)
 
 # Formatting
-plt.xlabel("FNR Disparity (Lower is Better)", fontsize=12, fontweight='bold')
-plt.ylabel("Accuracy (Higher is Better)", fontsize=12, fontweight='bold')
-plt.title("Fairness-Accuracy Tradeoff: Clinical ML Interventions", fontsize=14, fontweight='bold')
-plt.legend(loc='best', fontsize=9)
-plt.grid(True, alpha=0.3, linestyle='--')
+plt.xlabel("FNR Disparity (Lower is Better ->)", fontsize=13, fontweight='bold')
+plt.ylabel("Accuracy (Higher is Better ^)", fontsize=13, fontweight='bold')
+plt.title("Fairness-Accuracy Tradeoff: Clinical ML Interventions",
+          fontsize=15, fontweight='bold', pad=20)
+
+# Legend (no duplicate method labels)
+plt.legend(loc='best', fontsize=10, framealpha=0.95, edgecolor='black')
+
+plt.grid(True, alpha=0.3, linestyle='--', zorder=0)
+plt.xlim(-0.01, max(df["FNR Disparity (mean)"]) + 0.05)  # Better x-axis
+plt.ylim(min(df["Accuracy (mean)"]) - 0.01, max(df["Accuracy (mean)"]) + 0.02)
+
 plt.tight_layout()
 
 fig1_path = "figures/figure1_pareto_frontier.png"
 plt.savefig(fig1_path, dpi=300, bbox_inches="tight")
 print(f"[OK] Figure 1 saved: {fig1_path}")
+plt.close()  # Close to free memory
 
 # VALIDATION CHECKS
 print("\n" + "="*80)

@@ -370,30 +370,77 @@ class ResearchGradeCausalAnalyzer:
         max_cond_size: int = 3
     ) -> List[Tuple[str, str]]:
         """
-        Simplified PC algorithm for edge discovery.
+        Run advanced clinical PC algorithm from pc_algorithm_clinical module.
 
         Returns undirected skeleton edges that survive independence tests.
         """
+        try:
+            from src.pc_algorithm_clinical import PCAlgorithmClinical
+
+            # Define proxy and clinical variables based on dataset
+            proxy_vars = {}
+            clinical_vars = {}
+
+            # Detect variable types from column names
+            cols = list(self.data_encoded.columns)
+            if 'insurance_type' in cols or 'distance' in cols:
+                proxy_vars['socioeconomic'] = [c for c in cols if 'insurance' in c or 'distance' in c]
+            if 'creatinine' in cols or 'bun' in cols:
+                clinical_vars['labs'] = [c for c in cols if any(lab in c for lab in ['creatinine', 'bun', 'gfr'])]
+
+            # Run advanced PC algorithm
+            pc_algo = PCAlgorithmClinical(
+                data=self.data_encoded,
+                protected_attr=self.protected_attr,
+                outcome=self.outcome,
+                temporal_order=self.temporal_order,
+                proxy_variables=proxy_vars,
+                clinical_variables=clinical_vars,
+                alpha=alpha,
+                max_cond_size=max_cond_size,
+                n_bootstrap=50,  # Reduced for speed
+                robustness_threshold=0.05
+            )
+
+            result = pc_algo.run()
+
+            # Log discovered bias pathways
+            for i, pathway in enumerate(result['bias_pathways'], 1):
+                logger.info(f"  Bias pathway {i}: {' -> '.join(pathway.path)} "
+                           f"({pathway.pathway_type}, robustness={pathway.sensitivity_robustness:.2%})")
+
+            # Return skeleton edges
+            skeleton_edges = [(edge.source, edge.target) for edge in result['edges_with_metadata']]
+            logger.info(f"Clinical PC algorithm: {len(skeleton_edges)} skeleton edges discovered")
+            return skeleton_edges
+
+        except ImportError as e:
+            logger.warning(f"Clinical PC algorithm unavailable ({e}). Using fallback.")
+            return self._pc_algorithm_fallback(alpha)
+        except Exception as e:
+            logger.error(f"Clinical PC algorithm failed: {e}. Using fallback.")
+            return self._pc_algorithm_fallback(alpha)
+
+    def _pc_algorithm_fallback(self, alpha: float = 0.05) -> List[Tuple[str, str]]:
+        """Correlation-based fallback when clinical PC unavailable."""
+        from scipy import stats
+
         variables = list(self.data_encoded.columns)
         skeleton_edges = []
+        n = len(self.data_encoded)
 
-        # Start with complete graph
         for i, var1 in enumerate(variables):
             for var2 in variables[i+1:]:
-                # Test marginal independence
                 corr = self.data_encoded[[var1, var2]].corr().iloc[0, 1]
-                n = len(self.data_encoded)
 
-                # Fisher's z-transform
                 if abs(corr) < 0.999:
                     z = 0.5 * np.log((1 + corr) / (1 - corr))
                     p_value = 2 * (1 - stats.norm.cdf(abs(z) * np.sqrt(n - 3)))
 
                     if p_value < alpha:
-                        # Edge survives marginal test
                         skeleton_edges.append((var1, var2))
 
-        logger.info(f"PC algorithm: {len(skeleton_edges)} skeleton edges discovered")
+        logger.info(f"Fallback PC algorithm: {len(skeleton_edges)} edges")
         return skeleton_edges
 
     def _orient_edges_by_temporal_order(

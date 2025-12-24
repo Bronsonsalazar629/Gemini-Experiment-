@@ -189,7 +189,7 @@ class SystematicBenchmarkExperiments:
 
     def _load_compas(self) -> Tuple[pd.DataFrame, str, str]:
         """
-        Load COMPAS recidivism dataset.
+        Load COMPAS recidivism dataset (ProPublica FairML version).
 
         Falls back to synthetic if real data unavailable.
         """
@@ -197,40 +197,56 @@ class SystematicBenchmarkExperiments:
             # Try loading from common paths
             import os
             compas_paths = [
+                "data/propublica_data_for_fairml.csv",
+                "../propublicaCompassRecividism_data_fairml.csv/propublica_data_for_fairml.csv",
                 "data/compas-scores-two-years.csv",
                 "../data/compas-scores-two-years.csv",
-                "../../data/compas-scores-two-years.csv"
             ]
 
             for path in compas_paths:
                 if os.path.exists(path):
                     df = pd.read_csv(path)
-                    logger.info(f"Loaded COMPAS from {path}")
+                    logger.info(f"Loaded COMPAS from {path} (n={len(df)})")
 
-                    # Standard COMPAS preprocessing (Dressel & Farid 2018)
-                    df = df[
-                        (df['days_b_screening_arrest'] <= 30) &
-                        (df['days_b_screening_arrest'] >= -30) &
-                        (df['is_recid'] != -1) &
-                        (df['c_charge_degree'] != 'O') &
-                        (df['score_text'] != 'N/A')
-                    ]
+                    # Check if it's the FairML version (already preprocessed)
+                    if 'Two_yr_Recidivism' in df.columns and 'African_American' in df.columns:
+                        # FairML version - already preprocessed
+                        df_clean = pd.DataFrame({
+                            'age': 1 - df['Age_Below_TwentyFive'],  # Approximate age feature
+                            'sex': 1 - df['Female'],  # 1 = Male
+                            'priors_count': df['Number_of_Priors'],
+                            'c_charge_degree': 1 - df['Misdemeanor'],  # 1 = Felony
+                            'race_binary': df['African_American'],
+                            'two_year_recid': df['Two_yr_Recidivism']
+                        })
 
-                    # Select features
-                    df = df[[
-                        'age', 'sex', 'race', 'priors_count',
-                        'c_charge_degree', 'two_year_recid'
-                    ]].copy()
+                        logger.info(f"Loaded ProPublica FairML COMPAS: {len(df_clean)} samples, "
+                                   f"{df_clean['race_binary'].mean():.1%} African-American, "
+                                   f"{df_clean['two_year_recid'].mean():.1%} recidivism rate")
 
-                    # Encode categoricals
-                    df['sex'] = (df['sex'] == 'Male').astype(int)
-                    df['c_charge_degree'] = (df['c_charge_degree'] == 'F').astype(int)
+                        return df_clean, 'race_binary', 'two_year_recid'
 
-                    # Binarize race (African-American vs others)
-                    df['race_binary'] = (df['race'] == 'African-American').astype(int)
-                    df = df.drop('race', axis=1)
+                    else:
+                        # Standard ProPublica format - apply Dressel & Farid preprocessing
+                        df = df[
+                            (df['days_b_screening_arrest'] <= 30) &
+                            (df['days_b_screening_arrest'] >= -30) &
+                            (df['is_recid'] != -1) &
+                            (df['c_charge_degree'] != 'O') &
+                            (df['score_text'] != 'N/A')
+                        ]
 
-                    return df, 'race_binary', 'two_year_recid'
+                        df = df[[
+                            'age', 'sex', 'race', 'priors_count',
+                            'c_charge_degree', 'two_year_recid'
+                        ]].copy()
+
+                        df['sex'] = (df['sex'] == 'Male').astype(int)
+                        df['c_charge_degree'] = (df['c_charge_degree'] == 'F').astype(int)
+                        df['race_binary'] = (df['race'] == 'African-American').astype(int)
+                        df = df.drop('race', axis=1)
+
+                        return df, 'race_binary', 'two_year_recid'
 
             logger.warning("COMPAS dataset not found. Using synthetic fallback.")
             return self._generate_synthetic_compas()
