@@ -179,13 +179,85 @@ class SystematicBenchmarkExperiments:
             (data, sensitive_attribute, outcome_variable)
         """
         if dataset == Dataset.COMPAS:
-            return self._load_compas()
+            return self._load_medicare()  # Try Medicare first, falls back to COMPAS
         elif dataset == Dataset.MIMIC_KIDNEY:
             return self._load_mimic_kidney()
         elif dataset == Dataset.SYNTHETIC_DEMO:
             return self._load_synthetic_demo()
         else:
             raise ValueError(f"Unknown dataset: {dataset}")
+
+    def _load_medicare(self) -> Tuple[pd.DataFrame, str, str]:
+        """
+        Load CMS Medicare beneficiary data and predict high-cost outcomes.
+
+        Uses real Medicare data to predict patients with high medical costs,
+        examining fairness across race/sex demographics.
+        """
+        try:
+            import os
+            medicare_paths = [
+                "data/DE1_0_2008_Beneficiary_Summary_File_Sample_1.csv",
+                "../data/DE1_0_2008_Beneficiary_Summary_File_Sample_1.csv",
+            ]
+
+            for path in medicare_paths:
+                if os.path.exists(path):
+                    df = pd.read_csv(path)
+                    logger.info(f"Loaded Medicare from {path} (n={len(df)})")
+
+                    # Calculate age from birth date
+                    df['age'] = 2008 - (df['BENE_BIRTH_DT'] // 10000)
+
+                    # Binary features
+                    df['sex'] = (df['BENE_SEX_IDENT_CD'] == 1).astype(int)  # 1 = Male
+                    df['race_white'] = (df['BENE_RACE_CD'] == 1).astype(int)  # Protected attr
+                    df['has_esrd'] = (df['BENE_ESRD_IND'] == 'Y').astype(int)
+
+                    # Chronic conditions (2=No, 1=Yes in data)
+                    df['has_diabetes'] = (df['SP_DIABETES'] == 1).astype(int)
+                    df['has_chf'] = (df['SP_CHF'] == 1).astype(int)
+                    df['has_copd'] = (df['SP_COPD'] == 1).astype(int)
+                    df['chronic_count'] = (
+                        (df['SP_ALZHDMTA'] == 1).astype(int) +
+                        (df['SP_CHF'] == 1).astype(int) +
+                        (df['SP_CHRNKIDN'] == 1).astype(int) +
+                        (df['SP_CNCR'] == 1).astype(int) +
+                        (df['SP_COPD'] == 1).astype(int) +
+                        (df['SP_DEPRESSN'] == 1).astype(int) +
+                        (df['SP_DIABETES'] == 1).astype(int)
+                    )
+
+                    # Total medical costs
+                    df['total_cost'] = (
+                        df['MEDREIMB_IP'].fillna(0) +
+                        df['MEDREIMB_OP'].fillna(0) +
+                        df['MEDREIMB_CAR'].fillna(0)
+                    )
+
+                    # Outcome: High-cost patient (top 25% = high risk)
+                    cost_threshold = df['total_cost'].quantile(0.75)
+                    df['high_cost'] = (df['total_cost'] > cost_threshold).astype(int)
+
+                    # Select features
+                    df_clean = df[[
+                        'age', 'sex', 'has_esrd', 'has_diabetes',
+                        'has_chf', 'has_copd', 'chronic_count',
+                        'race_white', 'high_cost'
+                    ]].dropna()
+
+                    logger.info(f"Medicare data: {len(df_clean)} samples, "
+                               f"{df_clean['race_white'].mean():.1%} White, "
+                               f"{df_clean['high_cost'].mean():.1%} high-cost patients")
+
+                    return df_clean, 'race_white', 'high_cost'
+
+            logger.warning("Medicare dataset not found. Trying COMPAS...")
+            return self._load_compas()
+
+        except Exception as e:
+            logger.warning(f"Error loading Medicare: {e}. Trying COMPAS...")
+            return self._load_compas()
 
     def _load_compas(self) -> Tuple[pd.DataFrame, str, str]:
         """
@@ -856,8 +928,8 @@ if __name__ == "__main__":
     # Initialize experiment runner
     runner = SystematicBenchmarkExperiments(seed=42, n_folds=5)
 
-    # Run benchmark on synthetic demo data
-    report = runner.run_benchmarks(dataset=Dataset.SYNTHETIC_DEMO)
+    # Run benchmark on Medicare data (high-cost prediction)
+    report = runner.run_benchmarks(dataset=Dataset.COMPAS)
 
     # Export results
     runner.export_results(report)
