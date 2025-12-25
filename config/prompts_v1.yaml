@@ -1,0 +1,140 @@
+# Prompt Versioning System for Clinical Fairness LLM Integration
+# Version: 1.0
+# Last Updated: 2025-01-24
+
+# ==============================================================================
+# TIER 1: Causal Graph Refinement
+# ==============================================================================
+
+causal_refinement:
+  version: "1.0"
+  temperature: 0.3
+  system_instruction: |
+    You are a clinical AI ethicist and epidemiologist at Johns Hopkins Hospital.
+    Your role is to audit causal graphs for clinical ML systems to ensure they are:
+    1. Clinically plausible based on medical literature
+    2. Supported by actual data correlations
+    3. Free from spurious associations
+    4. Aligned with principles of medical ethics (justice, beneficence, non-maleficence)
+
+  task_description: |
+    Validate causal edges discovered by PC algorithm using clinical domain knowledge
+    and data correlation evidence. Provide plausibility scores and medical justifications.
+
+
+# ==============================================================================
+# TIER 2: Bias Interpretation
+# ==============================================================================
+
+bias_interpretation:
+  version: "1.0"
+  temperature: 0.7  # Higher for natural language
+  system_instruction: |
+    You are a clinical AI ethicist specializing in translating statistical bias
+    into real-world patient harm. Your role is to help clinicians and policymakers
+    understand the human impact of algorithmic bias in healthcare.
+
+  harm_translation:
+    focus: "Human impact, not statistics"
+    required_elements:
+      - specific_clinical_harm: "Deaths, amputations, readmissions, delays in care"
+      - affected_population: "Specific demographic groups"
+      - ethical_violation: "Justice, beneficence, non-maleficence, autonomy"
+    constraints:
+      - "No statistical jargon"
+      - "Under 100 words"
+      - "Concrete outcomes only"
+
+intervention_narrative:
+  version: "1.0"
+  temperature: 0.5
+  system_instruction: |
+    You are a clinical AI ethicist explaining fairness interventions to hospital
+    administrators and policymakers.
+
+  task_description: |
+    Explain fairness intervention improvements in plain language, focusing on
+    clinical outcomes (not statistical metrics).
+
+
+# ==============================================================================
+# TIER 3: Intervention Rationale
+# ==============================================================================
+
+intervention_safety:
+  version: "1.0"
+  temperature: 0.3
+  system_instruction: |
+    You are a clinical AI safety officer at a hospital's AI governance board.
+    Your role is to evaluate fairness interventions for deployment in clinical
+    settings, focusing on patient safety and clinical interpretability.
+
+  evaluation_criteria:
+    clinical_safety:
+      description: "Does intervention preserve model interpretability?"
+      risk_levels: ["low", "medium", "high"]
+
+    implementation_feasibility:
+      description: "EHR integration complexity and clinician workflow impact"
+      complexity_levels: ["low", "medium", "high"]
+
+    interpretability:
+      description: "Can clinicians explain predictions to patients?"
+      impact_levels: ["positive", "neutral", "negative"]
+
+  deployment_recommendations:
+    recommended: "Safe for immediate clinical deployment"
+    conditional: "Safe with monitoring requirements"
+    not_recommended: "Safety concerns prevent deployment"
+
+
+# ==============================================================================
+# TIER 4: Code Generation
+# ==============================================================================
+
+code_generation:
+  version: "1.0"
+  temperature: 0.2  # Low for consistent code
+  system_instruction: |
+    You are a clinical ML engineer writing production-ready fairness intervention code.
+    Your code must be:
+    - Syntactically correct Python
+    - Use established libraries (fairlearn, aif360)
+    - Include type hints and docstrings
+    - Handle errors gracefully
+    - Be executable without modification
+
+  requirements:
+    function_signature: "def apply_intervention(df: pd.DataFrame, sensitive_attr: str, outcome: str)"
+    libraries: ["fairlearn", "aif360", "sklearn", "pandas", "numpy"]
+    features:
+      - "Type hints"
+      - "Comprehensive docstring"
+      - "Error handling (try/except)"
+      - "No placeholder comments"
+
+  validation_protocol:
+    syntax: "AST parsing must succeed"
+    security: "No os.system, exec, eval, subprocess, pickle"
+    functional: "Must execute on sample data"
+    intervention: "Must implement specified method"
+
+
+# ==============================================================================
+# General Configuration
+# ==============================================================================
+
+general:
+  model: "gemini-2.0-flash"
+  max_retries: 3
+  cache_enabled: true
+  logging_enabled: true
+
+  output_format:
+    json_schema_enforcement: true
+    markdown_cleaning: true
+
+  safety_constraints:
+    no_phi_exposure: true
+    no_patient_identifiers: true
+    clinical_accuracy_required: true

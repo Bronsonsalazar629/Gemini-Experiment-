@@ -1,0 +1,58 @@
+================================================================================
+CLINICAL FAIRNESS ANALYSIS REPORT
+================================================================================
+
+Report ID: clinical_fairness_20251225_142338
+Generated: 2025-12-25T14:23:38.967669
+
+EXECUTIVE SUMMARY
+--------------------------------------------------------------------------------
+dataset_summary: 116352 patients, 9 features
+causal_analysis: 13 total causal edges (0 LLM-validated)
+fairness_interventions_evaluated: 4
+recommended_intervention: Fairlearn (Equalized Odds)
+best_fnr_disparity: 2.2%
+implementation_code_generated: 3
+clinical_safety_status: SAFE
+
+
+DEPLOYMENT RECOMMENDATIONS
+--------------------------------------------------------------------------------
+1. PRIORITY: Address baseline bias - A False Negative Rate (FNR) disparity of 2.6% means that Non-White patients
+are 1.1x more likely to be incorrectly classified as low-cost,
+leading to ...
+2. CONDITIONAL: Fairlearn (Demographic Parity) requires monitoring - May not address outcome disparities (only prediction rate equity)
+3. RECOMMENDED: Deploy Fairlearn (Equalized Odds) - Constrains model to equalize true positive and false positive rates across demographic groups while ...
+4. RECOMMENDED: Deploy AIF360 Reweighing - IBM AIF360 implementation of sample reweighing with comprehensive bias metrics; preserves model inte...
+
+
+CLINICAL HARM NARRATIVES
+--------------------------------------------------------------------------------
+
+Unmitigated Baseline:
+A False Negative Rate (FNR) disparity of 2.6% means that Non-White patients
+are 1.1x more likely to be incorrectly classified as low-cost,
+leading to inadequate care management and preventable hospitalizations. This
+violates the principle of justice (fair resource allocation) by systematically underestimating care
+needs for vulnerable populations.
+
+Fairlearn (Demographic Parity):
+A False Negative Rate (FNR) disparity of 4.7% means that Non-White patients
+are 1.2x more likely to be incorrectly classified as low-cost,
+leading to inadequate care management and preventable hospitalizations. This
+violates the principle of justice (fair resource allocation) by systematically underestimating care
+needs for vulnerable populations.
+
+Fairlearn (Equalized Odds):
+A False Negative Rate (FNR) disparity of 2.2% means that Non-White patients
+are 1.1x more likely to be incorrectly classified as low-cost,
+leading to inadequate care management and preventable hospitalizations. This
+violates the principle of justice (fair resource allocation) by systematically underestimating care
+needs for vulnerable populations.
+
+AIF360 Reweighing:
+A False Negative Rate (FNR) disparity of 2.8% means that Non-White patients
+are 1.1x more likely to be incorrectly classified as low-cost,
+leading to inadequate care management and preventable hospitalizations. This
+violates the principle of justice (fair resource allocation) by systematically underestimating care
+needs for vulnerable populations.
