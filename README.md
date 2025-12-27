@@ -335,7 +335,7 @@ for rec in recommendations:
 
 ### Current Limitations
 - Requires binary protected attributes (can extend to multi-group)
-- Assumes data encoding in /home/claude directory (easily modifiable)
+- Assumes data encoding in /data/processed directory (easily modifiable)
 - PC algorithm limited to ~10 variables (scalability constraint)
 - Gemini integration requires API key (fallback mechanisms provided)
 
